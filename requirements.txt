@@ -1,0 +1,26 @@
+# Python dependencies for Delhi Flood Risk Prediction System
+
+# Core ML and Data Science
+numpy>=1.24.0
+pandas>=2.0.0
+scikit-learn>=1.3.0
+
+# Model Persistence
+joblib>=1.3.0
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Web API (Upload + Inference)
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
+python-multipart>=0.0.6
+
+# Optional: Advanced Models (uncomment if needed)
+# xgboost>=1.7.0
+# lightgbm>=4.0.0
+
+# Optional: Jupyter notebooks (for exploration)
+# jupyter>=1.0.0
+# ipython>=8.0.0

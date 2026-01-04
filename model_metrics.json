@@ -1,0 +1,89 @@
+{
+  "model_type": "Random Forest Regressor",
+  "training_date": "2026-01-03 23:35:32",
+  "hyperparameters": {
+    "n_estimators": 200,
+    "max_depth": 15,
+    "min_samples_split": 10,
+    "min_samples_leaf": 4
+  },
+  "metrics": {
+    "train": {
+      "rmse": 0.10422350954708909,
+      "mae": 0.03577469816795045,
+      "r2": 0.9651093764064412
+    },
+    "validation": {
+      "rmse": 0.12869084821630344,
+      "mae": 0.0457143673452404,
+      "r2": 0.94549315876812
+    },
+    "test": {
+      "rmse": 0.13805480307713497,
+      "mae": 0.04731374730736626,
+      "r2": 0.9429275844822415
+    }
+  },
+  "feature_importance": [
+    {
+      "feature": "max_rainfall_3day_mm",
+      "importance": 0.3733434905891815
+    },
+    {
+      "feature": "drain_capacity_proxy",
+      "importance": 0.18964146447516905
+    },
+    {
+      "feature": "avg_monsoon_rainfall_mm",
+      "importance": 0.10073224244891812
+    },
+    {
+      "feature": "drain_condition_score",
+      "importance": 0.08822772685886525
+    },
+    {
+      "feature": "drain_density_km_per_km2",
+      "importance": 0.045800018955313715
+    },
+    {
+      "feature": "month_cos",
+      "importance": 0.04499683104832762
+    },
+    {
+      "feature": "month_sin",
+      "importance": 0.031407404506829266
+    },
+    {
+      "feature": "impervious_surface_fraction",
+      "importance": 0.023778925882590896
+    },
+    {
+      "feature": "depression_area_fraction",
+      "importance": 0.0235204044713159
+    },
+    {
+      "feature": "mean_slope_percent",
+      "importance": 0.02070994377011532
+    },
+    {
+      "feature": "area_km2",
+      "importance": 0.015744555031954925
+    },
+    {
+      "feature": "water_body_fraction",
+      "importance": 0.014444124478594781
+    },
+    {
+      "feature": "mean_elevation_m",
+      "importance": 0.012447724247085736
+    },
+    {
+      "feature": "yamuna_backflow_risk",
+      "importance": 0.01026648867585029
+    },
+    {
+      "feature": "year",
+      "importance": 0.00493865455988766
+    }
+  ]
+}

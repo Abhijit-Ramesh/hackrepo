@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delhi Flood Risk Map - Water-Logging Hotspot Visualization</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+            justify-content: space-between;
+        }
+
+        .header-left {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 0;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            align-items: center;
+        }
+
+        .header-actions a,
+        .header-actions button {
+            appearance: none;
+            border: 1px solid rgba(255,255,255,0.35);
+            background: rgba(255,255,255,0.14);
+            color: white;
+            padding: 10px 12px;
+            border-radius: 10px;
+            font-size: 12px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.15s ease, border-color 0.15s ease;
+        }
+
+        .header-actions a:hover,
+        .header-actions button:hover {
+            background: rgba(255,255,255,0.2);
+            border-color: rgba(255,255,255,0.5);
+        }
+
+        .month-tabs {
+            margin-top: 10px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .month-tab {
+            appearance: none;
+            border: 1px solid rgba(255,255,255,0.25);
+            background: rgba(255,255,255,0.12);
+            color: white;
+            padding: 8px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.15s ease, border-color 0.15s ease;
+        }
+
+        .month-tab:hover {
+            background: rgba(255,255,255,0.18);
+            border-color: rgba(255,255,255,0.4);
+        }
+
+        .month-tab.active {
+            background: rgba(255,255,255,0.92);
+            color: #3b2f5c;
+            border-color: rgba(255,255,255,0.92);
+            font-weight: 700;
+        }
+
+        .month-tab.monsoon {
+            box-shadow: inset 0 0 0 1px rgba(255, 193, 7, 0.7);
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 112px);
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .sidebar {
+            width: 350px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .sidebar h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .info-section {
+            margin-bottom: 25px;
+        }
+
+        .info-section h3 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 5px;
+            transition: background 0.2s;
+        }
+
+        .legend-item:hover {
+            background: #f8f9fa;
+        }
+
+        .legend-color {
+            width: 30px;
+            height: 30px;
+            border-radius: 5px;
+            margin-right: 10px;
+            border: 2px solid rgba(0,0,0,0.1);
+        }
+
+        .legend-text {
+            flex: 1;
+        }
+
+        .legend-text strong {
+            display: block;
+            color: #333;
+            margin-bottom: 2px;
+        }
+
+        .legend-text small {
+            color: #666;
+            font-size: 12px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        .map-container {
+            flex: 1;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .leaflet-popup-content-wrapper {
+            border-radius: 8px;
+            box-shadow: 0 3px 14px rgba(0,0,0,0.2);
+        }
+
+        .popup-content {
+            padding: 10px;
+            min-width: 200px;
+        }
+
+        .popup-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .popup-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 13px;
+        }
+
+        .popup-label {
+            color: #666;
+        }
+
+        .popup-value {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .risk-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .risk-No {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .risk-Low {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .risk-Moderate {
+            background: #ffeaa7;
+            color: #d35400;
+        }
+
+        .risk-High {
+            background: #ffcccc;
+            color: #c0392b;
+        }
+
+        .risk-Severe {
+            background: #cc0000;
+            color: white;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            font-size: 18px;
+            color: #667eea;
+        }
+
+        .loading-overlay.hidden {
+            display: none;
+        }
+
+        .disclaimer {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+        }
+
+        .disclaimer h4 {
+            font-size: 13px;
+            margin-bottom: 8px;
+            color: #856404;
+        }
+
+        .disclaimer p {
+            font-size: 11px;
+            color: #856404;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                height: auto;
+            }
+
+            .sidebar {
+                width: 100%;
+            }
+
+            .map-container {
+                height: 500px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <h1>Delhi Flood Risk Map</h1>
+            <p id="subtitle">Ward-Level Water-Logging Hotspot Identification using Machine Learning</p>
+            <div class="month-tabs" id="month-tabs"></div>
+        </div>
+        <div class="header-actions">
+            <a href="/">Upload New Year CSV</a>
+            <button type="button" id="clear-upload">Clear Uploaded Data</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="sidebar">
+            <h2>Flood Risk Analysis</h2>
+
+            <div class="info-section">
+                <h3>Risk Categories</h3>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #4CAF50;"></div>
+                    <div class="legend-text">
+                        <strong>No Risk</strong>
+                        <small>0 flood incidents expected</small>
+                    </div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #FFEB3B;"></div>
+                    <div class="legend-text">
+                        <strong>Low Risk</strong>
+                        <small>0 - 0.2 flood incidents expected</small>
+                    </div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #FFA726;"></div>
+                    <div class="legend-text">
+                        <strong>Moderate Risk</strong>
+                        <small>0.2 - 0.6 flood incidents expected</small>
+                    </div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #EF5350;"></div>
+                    <div class="legend-text">
+                        <strong>High Risk</strong>
+                        <small>0.6 - 1.2 flood incidents expected</small>
+                    </div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #B71C1C;"></div>
+                    <div class="legend-text">
+                        <strong>Severe Risk</strong>
+                        <small>1.2+ flood incidents expected</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3>Key Statistics</h3>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="total-wards">-</div>
+                        <div class="stat-label">Total Wards</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="high-risk-wards">-</div>
+                        <div class="stat-label">High Risk Wards</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="moderate-risk-wards">-</div>
+                        <div class="stat-label">Moderate Risk</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="low-risk-wards">-</div>
+                        <div class="stat-label">Low Risk</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3>Model Information</h3>
+                <div style="font-size: 13px; line-height: 1.8; color: #666;">
+                    <div><strong>Algorithm:</strong> Random Forest Regression</div>
+                    <div><strong>Features:</strong> feature_columns.json</div>
+                    <div><strong>Granularity:</strong> Ward-level, month-wise predictions</div>
+                </div>
+            </div>
+
+            <div class="disclaimer">
+                <h4>Important Notice</h4>
+                <p>This system uses physically informed machine learning and public climatological proxies to approximate urban flood risk where ward-level historical records are unavailable. Predictions are for demonstration and early-warning exploration purposes only.</p>
+            </div>
+        </div>
+
+        <div class="map-container">
+            <div class="loading-overlay" id="loading">
+                <div>Loading map data...</div>
+            </div>
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        const map = L.map('map').setView([28.6139, 77.2090], 11);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 18
+        }).addTo(map);
+
+        let allPredData = [];
+        let geoDataCache = null;
+        let geoLayer = null;
+        let selectedMonth = 'all';
+
+        function getRiskColor(riskCategory) {
+            const colorMap = {
+                'No Risk': '#4CAF50',
+                'Low': '#FFEB3B',
+                'Moderate': '#FFA726',
+                'High': '#EF5350',
+                'Severe': '#B71C1C'
+            };
+            return colorMap[riskCategory] || '#CCCCCC';
+        }
+
+        function getRiskOpacity(riskCategory) {
+            return riskCategory === 'No Risk' ? 0.3 : 0.7;
+        }
+
+        function parseCSV(text) {
+            const lines = text.trim().split('\n');
+            const headers = lines[0].split(',');
+            const data = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',');
+                const row = {};
+                headers.forEach((header, idx) => {
+                    row[header.trim()] = values[idx] ? values[idx].trim() : '';
+                });
+                data.push(row);
+            }
+
+            return data;
+        }
+
+        function filterByMonth(data, selectedMonth) {
+            if (selectedMonth === 'all') {
+                const aggregatedData = {};
+                data.forEach(row => {
+                    const current = parseFloat(row.risk_index || row.risk_score || 0);
+                    const existing = aggregatedData[row.Ward_No]
+                        ? parseFloat(aggregatedData[row.Ward_No].risk_index || aggregatedData[row.Ward_No].risk_score || 0)
+                        : -Infinity;
+                    if (!aggregatedData[row.Ward_No] || current > existing) {
+                        aggregatedData[row.Ward_No] = row;
+                    }
+                });
+                return Object.values(aggregatedData);
+            }
+            return data.filter(row => row.month == selectedMonth);
+        }
+
+        function setSelectedMonth(nextMonth) {
+            selectedMonth = nextMonth;
+            const tabs = document.querySelectorAll('.month-tab');
+            tabs.forEach(t => {
+                t.classList.toggle('active', t.dataset.month === selectedMonth);
+            });
+        }
+
+        function renderSelectedMonth() {
+            const filteredData = filterByMonth(allPredData, selectedMonth);
+            updateStatistics(filteredData);
+            renderLayer(filteredData);
+        }
+
+        function initMonthTabs() {
+            const container = document.getElementById('month-tabs');
+            if (!container) return;
+
+            const monthDefs = [
+                { value: 'all', label: 'All' },
+                { value: '1', label: 'Jan' },
+                { value: '2', label: 'Feb' },
+                { value: '3', label: 'Mar' },
+                { value: '4', label: 'Apr' },
+                { value: '5', label: 'May' },
+                { value: '6', label: 'Jun' },
+                { value: '7', label: 'Jul' },
+                { value: '8', label: 'Aug' },
+                { value: '9', label: 'Sep' },
+                { value: '10', label: 'Oct' },
+                { value: '11', label: 'Nov' },
+                { value: '12', label: 'Dec' }
+            ];
+
+            container.innerHTML = '';
+            monthDefs.forEach(m => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'month-tab';
+                btn.dataset.month = m.value;
+                btn.textContent = m.label;
+                if (['6', '7', '8', '9'].includes(m.value)) {
+                    btn.classList.add('monsoon');
+                }
+                btn.addEventListener('click', () => {
+                    setSelectedMonth(m.value);
+                    renderSelectedMonth();
+                });
+                container.appendChild(btn);
+            });
+
+            setSelectedMonth('all');
+        }
+
+        function renderLayer(predData) {
+            const predMap = {};
+            predData.forEach(row => {
+                predMap[row.Ward_No] = row;
+            });
+
+            if (geoLayer) {
+                map.removeLayer(geoLayer);
+            }
+
+            geoLayer = L.geoJSON(geoDataCache, {
+                style: function(feature) {
+                    const wardNo = feature.properties.Ward_No;
+                    const prediction = predMap[wardNo];
+
+                    if (prediction) {
+                        const category = prediction.risk_category;
+                        return {
+                            fillColor: getRiskColor(category),
+                            fillOpacity: getRiskOpacity(category),
+                            color: '#333',
+                            weight: 1,
+                            opacity: 0.5
+                        };
+                    }
+
+                    return {
+                        fillColor: '#CCCCCC',
+                        fillOpacity: 0.2,
+                        color: '#666',
+                        weight: 1,
+                        opacity: 0.3
+                    };
+                },
+                onEachFeature: function(feature, layer) {
+                    const wardNo = feature.properties.Ward_No;
+                    const wardName = feature.properties.WardName;
+                    const prediction = predMap[wardNo];
+
+                    let popupContent = `
+                        <div class="popup-content">
+                            <div class="popup-title">Ward ${wardNo}: ${wardName}</div>
+                    `;
+
+                    if (prediction) {
+                        const displayCategory = prediction.risk_category;
+                        const riskClass = (displayCategory || '').replace(' ', '-');
+                        popupContent += `
+                            <div class="popup-row">
+                                <span class="popup-label">Risk Level:</span>
+                                <span class="risk-badge risk-${riskClass}">${displayCategory}</span>
+                            </div>
+                            <div class="popup-row">
+                                <span class="popup-label">Predicted Flood Count:</span>
+                                <span class="popup-value">${parseFloat(prediction.predicted_flood_count || 0).toFixed(2)}</span>
+                            </div>
+                            <div class="popup-row">
+                                <span class="popup-label">Avg Monsoon Rainfall:</span>
+                                <span class="popup-value">${parseFloat(prediction.avg_monsoon_rainfall_mm || 0).toFixed(1)} mm</span>
+                            </div>
+                            <div class="popup-row">
+                                <span class="popup-label">Max 3-Day Rainfall:</span>
+                                <span class="popup-value">${parseFloat(prediction.max_rainfall_3day_mm || 0).toFixed(1)} mm</span>
+                            </div>
+                            <div class="popup-row">
+                                <span class="popup-label">Zone:</span>
+                                <span class="popup-value">${prediction.zone_name || 'N/A'}</span>
+                            </div>
+                        `;
+                    } else {
+                        popupContent += `
+                            <div class="popup-row">
+                                <span class="popup-label" style="color: #999;">No prediction data available</span>
+                            </div>
+                        `;
+                    }
+
+                    popupContent += `</div>`;
+                    layer.bindPopup(popupContent);
+
+                    layer.on({
+                        mouseover: function() {
+                            this.setStyle({
+                                weight: 3,
+                                opacity: 1
+                            });
+                        },
+                        mouseout: function() {
+                            this.setStyle({
+                                weight: 1,
+                                opacity: 0.5
+                            });
+                        }
+                    });
+                }
+            }).addTo(map);
+        }
+
+        function updateStatistics(predData) {
+            const total = predData.length;
+            let highRisk = 0;
+            let moderateRisk = 0;
+            let lowRisk = 0;
+
+            predData.forEach(row => {
+                const category = row.risk_category;
+                if (category === 'High' || category === 'Severe') {
+                    highRisk++;
+                } else if (category === 'Moderate') {
+                    moderateRisk++;
+                } else if (category === 'Low') {
+                    lowRisk++;
+                }
+            });
+
+            document.getElementById('total-wards').textContent = total;
+            document.getElementById('high-risk-wards').textContent = highRisk;
+            document.getElementById('moderate-risk-wards').textContent = moderateRisk;
+            document.getElementById('low-risk-wards').textContent = lowRisk;
+
+            const subtitleEl = document.getElementById('subtitle');
+            if (selectedMonth !== 'all') {
+                const monthNames = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const monthName = monthNames[parseInt(selectedMonth)];
+                const isMonsoon = [6,7,8,9].includes(parseInt(selectedMonth));
+                subtitleEl.textContent = `Ward-Level Water-Logging Hotspot Identification | ${monthName} ${isMonsoon ? 'MONSOON MONTH' : ''}`;
+            } else {
+                subtitleEl.textContent = 'Ward-Level Water-Logging Hotspot Identification using Machine Learning';
+            }
+        }
+
+        function getUploadedPredictions() {
+            try {
+                return localStorage.getItem('uploaded_predictions_csv');
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function getUploadedMeta() {
+            try {
+                const raw = localStorage.getItem('uploaded_predictions_meta');
+                return raw ? JSON.parse(raw) : null;
+            } catch (_) {
+                return null;
+            }
+        }
+
+        async function loadMapData() {
+            try {
+                const geoResponse = await fetch('delhi_wards (1).json');
+                geoDataCache = await geoResponse.json();
+
+                const uploadedCsv = getUploadedPredictions();
+                const meta = getUploadedMeta();
+
+                if (uploadedCsv) {
+                    allPredData = parseCSV(uploadedCsv);
+                    if (meta && meta.year) {
+                        document.querySelector('title').textContent = `Delhi Flood Risk Map - ${meta.year}`;
+                    }
+                } else {
+                    const predResponse = await fetch('monthly_flood_predictions_2025.csv');
+                    const predText = await predResponse.text();
+                    allPredData = parseCSV(predText);
+                }
+
+                renderSelectedMonth();
+                document.getElementById('loading').classList.add('hidden');
+            } catch (error) {
+                console.error('Error loading map data:', error);
+                document.getElementById('loading').innerHTML =
+                    '<div style="color: red;">Error loading data. Please ensure the server is running and required files exist.</div>';
+            }
+        }
+
+        document.getElementById('clear-upload').addEventListener('click', () => {
+            try {
+                localStorage.removeItem('uploaded_predictions_csv');
+                localStorage.removeItem('uploaded_predictions_meta');
+            } catch (_) {
+            }
+            window.location.reload();
+        });
+
+        initMonthTabs();
+        loadMapData();
+    </script>
+</body>
+</html>

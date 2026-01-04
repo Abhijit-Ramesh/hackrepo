@@ -1,0 +1,17 @@
+[
+  "year",
+  "max_rainfall_3day_mm",
+  "avg_monsoon_rainfall_mm",
+  "drain_density_km_per_km2",
+  "depression_area_fraction",
+  "mean_slope_percent",
+  "impervious_surface_fraction",
+  "drain_condition_score",
+  "drain_capacity_proxy",
+  "mean_elevation_m",
+  "area_km2",
+  "yamuna_backflow_risk",
+  "water_body_fraction",
+  "month_sin",
+  "month_cos"
+]

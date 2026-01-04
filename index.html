@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delhi Flood Risk Predictor</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            background: radial-gradient(circle at 20% 10%, rgba(102,126,234,0.35), transparent 45%),
+                        radial-gradient(circle at 80% 30%, rgba(118,75,162,0.35), transparent 45%),
+                        linear-gradient(135deg, #0f1020 0%, #171a2b 35%, #0f1020 100%);
+            color: white;
+        }
+
+        .shell {
+            width: min(1100px, 92vw);
+            margin: 0 auto;
+            padding: 48px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .brand {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .brand h1 {
+            font-size: 30px;
+            line-height: 1.1;
+        }
+
+        .brand p {
+            opacity: 0.85;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            appearance: none;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.08);
+            color: white;
+            padding: 10px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            background: rgba(255,255,255,0.12);
+            border-color: rgba(255,255,255,0.35);
+        }
+
+        .btn.primary {
+            background: linear-gradient(135deg, rgba(102,126,234,0.9), rgba(118,75,162,0.9));
+            border-color: rgba(255,255,255,0.22);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 18px;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 18px;
+            padding: 18px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+        }
+
+        .card h2 {
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .card p {
+            font-size: 13px;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+
+        .upload-box {
+            margin-top: 14px;
+            border: 1px dashed rgba(255,255,255,0.35);
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .upload-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            max-width: 520px;
+            padding: 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(0,0,0,0.25);
+            color: rgba(255,255,255,0.9);
+        }
+
+        .status {
+            font-size: 12px;
+            opacity: 0.9;
+            min-height: 18px;
+        }
+
+        .hint {
+            font-size: 12px;
+            opacity: 0.85;
+            line-height: 1.6;
+        }
+
+        .mono {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 12px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 11px;
+            overflow-x: auto;
+        }
+
+        @media (max-width: 900px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="shell">
+        <div class="topbar">
+            <div class="brand">
+                <h1>Delhi Flood Risk Predictor</h1>
+                <p>
+                    Upload ward-by-month inputs for a future year, generate predictions using the trained model,
+                    then explore hotspots on the interactive map.
+                </p>
+            </div>
+            <div class="actions">
+                <a class="btn" href="/map.html">Open Map (default data)</a>
+                <button class="btn" id="clear">Clear uploaded data</button>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h2>1) Download the template</h2>
+                <p>
+                    Your CSV must include <strong>Ward_No</strong> and <strong>month</strong> (1-12), plus all required
+                    model features. We will compute <strong>month_sin</strong> and <strong>month_cos</strong> automatically.
+                </p>
+                <div class="upload-box">
+                    <div class="upload-row">
+                        <a class="btn" id="download-template" href="/api/template" download>Download CSV Template</a>
+                        <a class="btn" href="/api/template" target="_blank" rel="noreferrer">View Template</a>
+                    </div>
+                    <div class="hint">
+                        Recommended: 250 wards × 12 months = <strong>3000 rows</strong>.
+                    </div>
+                </div>
+
+                <h2 style="margin-top: 18px;">2) Upload & predict</h2>
+                <p>
+                    Upload your future-year inputs CSV. We will return a prediction CSV with
+                    <strong>predicted_flood_count</strong>, <strong>risk_category</strong>, <strong>risk_index</strong>.
+                </p>
+
+                <div class="upload-box">
+                    <input type="file" id="file" accept=".csv" />
+                    <div class="upload-row">
+                        <button class="btn primary" id="predict">Generate Hotspot Map</button>
+                        <div class="status" id="status"></div>
+                    </div>
+                    <div class="hint">
+                        Tip: the backend endpoint is <span class="mono">POST /api/predict</span>.
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Format rules (important)</h2>
+                <p>
+                    Minimum required columns for mapping + prediction:
+                </p>
+                <div class="mono">
+Ward_No, month, (all columns listed in feature_columns.json)
+                </div>
+                <p style="margin-top: 10px;">
+                    Optional but recommended for nicer popups:
+                </p>
+                <div class="mono">
+WardName, zone_name, year, max_rainfall_3day_mm, avg_monsoon_rainfall_mm
+                </div>
+                <p style="margin-top: 10px;">
+                    After upload, we store the returned CSV in your browser (localStorage) and
+                    redirect you to <strong>map.html</strong>.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const statusEl = document.getElementById('status');
+        const fileEl = document.getElementById('file');
+        const predictBtn = document.getElementById('predict');
+        const clearBtn = document.getElementById('clear');
+
+        function setStatus(msg) {
+            statusEl.textContent = msg;
+        }
+
+        function safeParseYearFromFilename(name) {
+            const match = (name || '').match(/(20\d{2})/);
+            return match ? match[1] : null;
+        }
+
+        clearBtn.addEventListener('click', () => {
+            try {
+                localStorage.removeItem('uploaded_predictions_csv');
+                localStorage.removeItem('uploaded_predictions_meta');
+            } catch (_) {
+            }
+            setStatus('Cleared uploaded data.');
+        });
+
+        predictBtn.addEventListener('click', async () => {
+            const file = fileEl.files && fileEl.files[0];
+            if (!file) {
+                setStatus('Select a CSV file first.');
+                return;
+            }
+
+            setStatus('Uploading and running inference...');
+            predictBtn.disabled = true;
+
+            try {
+                const form = new FormData();
+                form.append('file', file);
+
+                const res = await fetch('/api/predict', {
+                    method: 'POST',
+                    body: form
+                });
+
+                if (!res.ok) {
+                    const text = await res.text();
+                    setStatus(`Error: ${text}`);
+                    predictBtn.disabled = false;
+                    return;
+                }
+
+                const csvText = await res.text();
+                const inferredYear = safeParseYearFromFilename(file.name);
+                try {
+                    localStorage.setItem('uploaded_predictions_csv', csvText);
+                    localStorage.setItem('uploaded_predictions_meta', JSON.stringify({
+                        filename: file.name,
+                        year: inferredYear
+                    }));
+                } catch (_) {
+                }
+
+                setStatus('Done! Opening map...');
+                window.location.href = '/map.html';
+            } catch (e) {
+                setStatus(`Unexpected error: ${e && e.message ? e.message : String(e)}`);
+            } finally {
+                predictBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
